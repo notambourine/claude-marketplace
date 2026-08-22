@@ -28,7 +28,7 @@ plugin added since your last run.
 | Plugin | Commands | What it does |
 | --- | --- | --- |
 | `nt-brand` | `/nt-brand:system` | Colors, type, spacing, component CSS, a Marpit deck theme, and the voice rules, plus the audit that checks work against them. Native CSS with no build step, so it drops into a page, a Worker, or a React app. |
-| `nt-dev` | `/nt-dev:pr` `/nt-dev:cleanup` `/nt-dev:md-format` `/nt-dev:recall` `/nt-dev:issue` `/nt-dev:eod-update` | Fills a PR body from the diff and opens it, audits a repo for dead refs and stale docs, wraps and tidies markdown at a width you pick, reads a prior session in this repo back into context, writes a GitHub issue to the house standard, writes a copy-paste end-of-day standup update from today's GitHub activity (never posts). Also ships the `Attentive` output style and the two `gh` hooks, both below. |
+| `nt-dev` | `/nt-dev:pr` `/nt-dev:cleanup` `/nt-dev:md-format` `/nt-dev:recall` `/nt-dev:issue` `/nt-dev:eod-update` | Fills a PR body from the diff and opens it, audits a repo for dead refs and stale docs, wraps and tidies markdown at a width you pick, reads a prior session in this repo back into context, writes a GitHub issue to the house standard, writes a copy-paste end-of-day standup update from today's GitHub activity (never posts). Also ships the `Attentive` output style and the three hooks, all below. |
 | `nt-pm` | `/nt-pm:shipped` `/nt-pm:weekly-recap` | Plain-English status updates for a non-technical audience. `shipped` writes a "Deploy Updates" summary — what's about to ship (promotion or current branch vs the default branch) or what just shipped (the last push to the default branch, from the reflog), grouped by category. `weekly-recap` writes a week-level summary of merged, in-review, and in-progress work across the whole team. Never posts, never deploys. |
 | `nt-voice` | `/nt-voice:human-voice` | The prose voice pass, behind one command. Two vendored skills do the work and disagree on method - surgical phrasing edits versus a full rewrite - so this triages the ask, picks one, says which, and hands off. Ask for it any way you like; you no longer have to remember which fork you wanted. Needs `nt-vendor`. |
 | `nt-vendor` | `/nt-vendor:humanizer` `/nt-vendor:anti-slop` `/nt-vendor:codebase-design` and three more | Skills mirrored whole from other people's repos, kept under a prefix that says so. The two prose skills are reached through `/nt-voice:human-voice`. |
@@ -64,13 +64,13 @@ write-up of ideas from Alex Greenshtein's
 copied, so this stays MIT while the original is AGPL-3.0. If you want the
 original rather than our merge, install it from that repo.
 
-## The two `gh` hooks
+## The three hooks
 
 A skill fires only when something in the prompt trips its description. Plenty of
 PRs and issues get opened by a sentence that trips nothing, and what lands is
-whatever the model invented. `nt-dev` ships two `PreToolUse` hooks for the gap.
-Both read the `gh` command about to run, both take an off switch, and both stay
-silent when there is nothing to say.
+whatever the model invented. `nt-dev` ships three hooks for the gap, two of them
+answering a tool call before it runs and one after. Each takes an off switch, and
+each stays silent when there is nothing to say.
 
 **The PR body hook.** GitHub renders a single newline as `<br>`, so a PR body
 wrapped at 80 columns lands as a ragged strip in a box twice as wide. Every
@@ -113,6 +113,37 @@ its own body.
 | `strict` | Names it every time until the skill is actually read. |
 | `off` | Nothing. |
 
+**The dash guard.** The gate at
+[dash-ratchet](https://github.com/notambourine/dash-ratchet) fails a pull request
+on any unicode dash the diff adds. It reports after the commit, so the cheap fix
+arrives one push too late. This hook makes the same assertion at the write: it
+counts the dashes in the text a `Write` or an `Edit` is carrying against what
+that text held before, and when the number rises it names the lines the write
+added. The write lands and the model gets those lines while the sentence is still
+in hand, which is the point. `strict` refuses the write instead.
+
+Counting the delta rather than scanning the payload is the whole trick. A file
+that already holds a dash, an `Edit` whose `old_string` quotes one back, a
+paragraph moved verbatim: a flat scan flags all three over a character it did
+not introduce, and a hook that does that gets switched off. The before it
+measures against is whatever is nearest the write: the patch the harness reports,
+an `Edit`'s own `old_string`, the file on disk, or the blob at the merge base
+with the default branch, which is where the gate starts its own diff. A line
+carrying `dash-ok` is exempt, the same as under the gate, and the excluded
+directories and a renamed marker are read off the gate's call in whichever
+workflow of that file's repo holds it, so the hook and CI cannot disagree about
+scope. A repo with no gate still gets the check.
+
+Each mode answers a different event, because the harness reaches the model two
+different ways: naming the lines is a `PostToolUse` block, whose reason the model
+reads before it moves on, and refusing the write is a `PreToolUse` deny.
+
+| `NT_DEV_DASH_GUARD` | What the hook does |
+| --- | --- |
+| unset | Lets the write land, then names the lines that raised the count. |
+| `strict` | Refuses the write. |
+| `off` | Nothing. |
+
 ## Turning plugins on and off
 
 Per machine:
@@ -131,8 +162,8 @@ Per repo, committed so the whole team gets the same set, in
 
 A skill costs one line of context until something triggers it, so a plugin you
 leave on is close to free. A hook is the thing to weigh: it runs whether or not
-you asked, which is why `wormhook` ships alone and why `nt-dev`'s two hooks fire
-on `gh` commands only and each take an `off` switch.
+you asked, which is why `wormhook` ships alone and why each of `nt-dev`'s three
+hooks reads one narrow payload and takes an `off` switch.
 
 ## Working on these plugins
 

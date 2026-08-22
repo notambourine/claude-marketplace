@@ -15,7 +15,7 @@
     {
       "name": "nt-dev",
       "source": "./plugins/nt-dev",
-      "description": "Everyday development workflow: /nt-dev:pr writes a PR body against the template, /nt-dev:cleanup audits a repo for drift, /nt-dev:md-format wraps and tidies markdown at a width you pick, /nt-dev:recall reads a prior session back into context, /nt-dev:issue writes a GitHub issue to the house standard, /nt-dev:eod-update writes a copy-paste end-of-day standup update from today's GitHub activity (never posts), and the Attentive output style trades asking for acting, then reports what changed. Two gh hooks back the skills up: one unwraps a PR body so GitHub does not render its line breaks as <br>, the other nudges a bare gh issue create toward the house standard."
+      "description": "Everyday development workflow: /nt-dev:pr writes a PR body against the template, /nt-dev:cleanup audits a repo for drift, /nt-dev:md-format wraps and tidies markdown at a width you pick, /nt-dev:recall reads a prior session back into context, /nt-dev:issue writes a GitHub issue to the house standard, /nt-dev:eod-update writes a copy-paste end-of-day standup update from today's GitHub activity (never posts), and the Attentive output style trades asking for acting, then reports what changed. Three hooks back the skills up: one unwraps a PR body so GitHub does not render its line breaks as <br>, one points a bare gh call at the skill holding the house standard, and one names every line where a write raises the unicode-dash count, so the dash gate never fails the PR."
     },
     {
       "name": "nt-pm",

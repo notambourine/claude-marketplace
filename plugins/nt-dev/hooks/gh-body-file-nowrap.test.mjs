@@ -216,12 +216,16 @@ describe('the shipped PR template', () => {
 });
 
 describe('the hook config', () => {
-  it('registers every hook for Bash at least, and points each at a file that exists', () => {
+  it('matches only the tools these hooks read, and points each at a file that exists', () => {
     const config = JSON.parse(readFileSync(join(HERE, 'hooks.json'), 'utf8'));
-    const entries = config.hooks.PreToolUse;
-    ok(entries.length, 'no PreToolUse entries');
+    const entries = Object.values(config.hooks).flat();
+    ok(config.hooks.PreToolUse?.length, 'no PreToolUse entries');
     for (const entry of entries) {
-      match(entry.matcher, /(^|\|)Bash(\||$)/);
+      /* A matcher wider than the payload the hook reads spawns a process per tool call for
+         nothing. Bash for the gh hooks, Write and Edit for the dash guard. */
+      for (const tool of entry.matcher.split('|')) {
+        match(tool, /^(Bash|Write|Edit|Skill)$/);
+      }
       for (const { command } of entry.hooks) {
         match(command, /\$\{CLAUDE_PLUGIN_ROOT\}/);
         /* The path in that command, resolved the way the harness resolves it. */

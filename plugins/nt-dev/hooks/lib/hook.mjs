@@ -39,6 +39,17 @@ export function context(additionalContext, message) {
   emit({ additionalContext }, message);
 }
 
+/* PostToolUse: the call already happened, and `decision: block` is the documented way to
+   put a reason in front of the model without ending the turn - it reads the reason and
+   keeps working. This is the event to use when the tool call was fine and what it wrote
+   needs a second pass. */
+export function feedback(reason, message) {
+  const out = { decision: 'block', reason };
+  if (message) out.systemMessage = message;
+  console.log(JSON.stringify(out));
+  process.exit(0);
+}
+
 function emit(hookSpecificOutput, systemMessage) {
   const out = { hookSpecificOutput: { hookEventName: 'PreToolUse', ...hookSpecificOutput } };
   if (systemMessage) out.systemMessage = systemMessage;
